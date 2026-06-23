@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Innovazione/Marketing – Attività 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#222;font-size:14px}
+header{background:#1565C0;color:#fff;height:56px;display:flex;align-items:center;padding:0 20px;gap:20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+header h1{font-size:17px;font-weight:600}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px}
+nav button:hover{background:rgba(255,255,255,.25)}
+nav button.active{background:#fff;color:#1565C0;font-weight:600}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;background:rgba(255,255,255,.15);border-radius:20px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50}
+.sync-dot.syncing{background:#FFC107;animation:pulse .6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+main{padding:16px;max-width:1600px;margin:0 auto}
+.tab-content{display:none}.tab-content.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #ccc}
+.card .num{font-size:32px;font-weight:700}.card .lbl{font-size:12px;color:#666;margin-top:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-attivo{background:#E3F2FD;color:#1976D2}
+.badge-completato{background:#E8F5E9;color:#388E3C}
+.badge-standby{background:#FFF3E0;color:#F57C00}
+.badge-feedback{background:#F3E5F5;color:#7B1FA2}
+.filters{background:#fff;border-radius:8px;padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.filters input,.filters select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+.btn-add{background:#1565C0;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-add:hover{background:#0D47A1}
+.table-wrap{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);overflow:auto;max-height:calc(100vh - 260px)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#1565C0;color:#fff;padding:8px 10px;text-align:left;position:sticky;top:0;white-space:nowrap;z-index:5}
+tbody tr{border-bottom:1px solid #f0f0f0}
+tbody tr:hover{background:#f5f8ff}
+td{padding:7px 10px;vertical-align:top}
+.btn-sm{border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;background:#E3F2FD;color:#1565C0}
+.btn-sm:hover{background:#BBDEFB}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:10px;padding:24px;width:min(480px,94vw);box-shadow:0 8px 30px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:12px;color:#555;margin-bottom:4px;font-weight:600}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.btn-primary{background:#1565C0;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px}
+.btn-primary:hover{background:#0D47A1}
+.btn-secondary{background:#f5f5f5;color:#444;border:1px solid #ddd;padding:8px 18px;border-radius:6px;cursor:pointer}
+.btn-secondary:hover{background:#ebebeb}
+.toast{position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:.3s}
+.toast.show{opacity:1}
+.toast.success{background:#2E7D32}.toast.error{background:#C62828}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Innovazione/Marketing — Attività 2026 ☁️</h1>
+  <nav>
+    <button class="active" onclick="APP.showTab('dashboard')">Dashboard</button>
+    <button onclick="APP.showTab('attivita')">Attività</button>
+    <button onclick="APP.showTab('esporta')">Esporta</button>
+  </nav>
+  <div class="sync-status">
+    <span class="sync-dot" id="sync-dot"></span>
+    <span id="sync-text">Caricamento...</span>
+  </div>
+</header>
+
+<main>
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="cards" id="summary-cards"></div>
+  </div>
+
+  <div class="tab-content" id="tab-attivita">
+    <div class="filters">
+      <input type="text" id="f-text" placeholder="Cerca..." oninput="APP.onFilter()" style="width:200px">
+      <select id="f-status" onchange="APP.onFilter()">
+        <option value="">Tutti gli stati</option>
+        <option value="attivo">In corso</option>
+        <option value="completato">Completato</option>
+        <option value="standby">Stand By</option>
+        <option value="feedback">In attesa feedback</option>
+      </select>
+      <button class="btn-add" onclick="APP.openAddModal()">+ Nuova</button>
+      <span style="margin-left:auto;font-size:12px;color:#888" id="result-count"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th style="min-width:200px">Titolo</th><th>Periodo</th><th>Responsabile</th>
+          <th>Stato</th><th>F.O.</th><th>Inizio</th><th>Fine</th><th></th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-esporta">
+    <div style="background:#fff;border-radius:8px;padding:20px;max-width:500px">
+      <h3 style="margin-bottom:16px">Esporta Report</h3>
+      <button class="btn-add" onclick="APP.exportExcel()" style="width:100%;margin-bottom:10px">📊 Scarica Excel</button>
+      <button class="btn-add" onclick="APP.exportPDF()" style="width:100%;background:#CC2927">📄 Scarica PDF</button>
+    </div>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)APP.closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2 id="modal-title">Nuova Attività</h2>
+    <div class="form-row">
+      <label>Titolo *</label>
+      <input type="text" id="m-titolo">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label>Periodo</label>
+        <input type="text" id="m-periodo">
+      </div>
+      <div class="form-row">
+        <label>Responsabile</label>
+        <input type="text" id="m-chi">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Stato</label>
+      <select id="m-stato">
+        <option value="In corso">In corso</option>
+        <option value="terminato">Terminato</option>
+        <option value="in attesa di feedback">In attesa di feedback</option>
+        <option value="in stand by">In stand by</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>F.O. / On Demand</label>
+      <input type="text" id="m-ondemand">
+    </div>
+    <div class="form-row">
+      <label>Annotazioni</label>
+      <textarea id="m-annotazioni" style="height:60px"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-row">
+        <label>Data Inizio</label>
+        <input type="date" id="m-datainizio">
+      </div>
+      <div class="form-row">
+        <label>Data Fine</label>
+        <input type="date" id="m-datafine">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="APP.closeModal()">Annulla</button>
+      <button class="btn-primary" onclick="APP.saveModal()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APP = {
+  supabase: null,
+  data: [],
+  filtered: [],
+  editingId: null,
+
+  async init() {
+    const { createClient } = window.supabase;
+    this.supabase = createClient(
+      'https://yydbpnpoiiukihexrbcx.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZGJwbnBvaWl1a2loZXhyYmN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMTk4NzMsImV4cCI6MjA5Nzc5NTg3M30.dsnWMh1RwBwS-b-8KwbBKENdRehg0Cq8YVKDGWNN0QU'
+    );
+
+    document.getElementById('sync-text').textContent = 'Connessione...';
+    const { data, error } = await this.supabase.from('attivita').select('*').order('id');
+    if (error) {
+      console.error('Errore:', error);
+      document.getElementById('sync-text').textContent = '❌ Errore di connessione';
+      this.toast('Errore connessione: ' + error.message, 'error');
+      return;
+    }
+    this.data = data || [];
+    document.getElementById('sync-dot').classList.remove('syncing');
+    document.getElementById('sync-text').textContent = '✓ Sincronizzato';
+    this.onFilter();
+    this.renderDashboard();
+    this.renderTable();
+  },
+
+  showTab(id) {
+    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(e => e.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    event.target.classList.add('active');
+  },
+
+  onFilter() {
+    const txt = document.getElementById('f-text').value.toLowerCase();
+    const status = document.getElementById('f-status').value;
+    this.filtered = this.data.filter(d => {
+      const hay = (d.titolo + d.chi + d.ondemand).toLowerCase();
+      const mT = !txt || hay.includes(txt);
+      const mS = !status || this.getStatusCat(d.stato) === status;
+      return mT && mS;
+    });
+    document.getElementById('result-count').textContent = this.filtered.length + ' / ' + this.data.length;
+    this.renderTable();
+  },
+
+  getStatusCat(stato) {
+    const s = (stato || '').toLowerCase();
+    if (s.includes('terminat')) return 'completato';
+    if (s.includes('stand by') || s.includes('sospesa')) return 'standby';
+    if (s.includes('attesa') || s.includes('prima consegna')) return 'feedback';
+    if (s.includes('corso')) return 'attivo';
+    return 'altro';
+  },
+
+  renderDashboard() {
+    const counts = { attivo: 0, completato: 0, standby: 0, feedback: 0 };
+    this.data.forEach(d => {
+      const c = this.getStatusCat(d.stato);
+      if (c in counts) counts[c]++;
+    });
+    document.getElementById('summary-cards').innerHTML = `
+      <div class="card"><div class="num">${this.data.length}</div><div class="lbl">Totale</div></div>
+      <div class="card"><div class="num">${counts.attivo}</div><div class="lbl">In corso</div></div>
+      <div class="card"><div class="num">${counts.completato}</div><div class="lbl">Completate</div></div>
+      <div class="card"><div class="num">${counts.standby}</div><div class="lbl">Stand By</div></div>
+      <div class="card"><div class="num">${counts.feedback}</div><div class="lbl">Feedback</div></div>
+    `;
+  },
+
+  renderTable() {
+    const html = this.filtered.map(d => `
+      <tr>
+        <td>${d.id}</td>
+        <td>${this.esc(d.titolo)}</td>
+        <td>${this.esc(d.periodo)}</td>
+        <td>${this.esc(d.chi)}</td>
+        <td><span class="badge badge-${this.getStatusCat(d.stato)}">${this.getStatusCat(d.stato)}</span></td>
+        <td style="font-size:11px">${this.esc(d.ondemand)}</td>
+        <td style="font-size:11px">${d.datainizio}</td>
+        <td style="font-size:11px">${d.datafine}</td>
+        <td><button class="btn-sm" onclick="APP.openEditModal(${d.id})">✏️</button></td>
+      </tr>
+    `).join('');
+    document.getElementById('table-body').innerHTML = html || '<tr><td colspan="9" style="text-align:center;color:#999;padding:30px">Nessun risultato</td></tr>';
+  },
+
+  openAddModal() {
+    this.editingId = null;
+    document.getElementById('modal-title').textContent = 'Nuova Attività';
+    ['titolo', 'periodo', 'chi', 'ondemand', 'annotazioni', 'datainizio', 'datafine'].forEach(f => {
+      document.getElementById('m-' + f).value = '';
+    });
+    document.getElementById('m-stato').value = 'In corso';
+    document.getElementById('modal-overlay').classList.add('open');
+  },
+
+  openEditModal(id) {
+    const row = this.data.find(d => d.id === id);
+    if (!row) return;
+    this.editingId = id;
+    document.getElementById('modal-title').textContent = 'Modifica #' + id;
+    ['titolo', 'periodo', 'chi', 'stato', 'ondemand', 'annotazioni', 'datainizio', 'datafine'].forEach(f => {
+      document.getElementById('m-' + f).value = row[f] || '';
+    });
+    document.getElementById('modal-overlay').classList.add('open');
+  },
+
+  closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  },
+
+  async saveModal() {
+    const titolo = document.getElementById('m-titolo').value.trim();
+    if (!titolo) { alert('Inserisci il titolo'); return; }
+
+    const obj = {
+      titolo,
+      periodo: document.getElementById('m-periodo').value.trim(),
+      chi: document.getElementById('m-chi').value.trim(),
+      stato: document.getElementById('m-stato').value,
+      ondemand: document.getElementById('m-ondemand').value.trim(),
+      annotazioni: document.getElementById('m-annotazioni').value.trim(),
+      datainizio: document.getElementById('m-datainizio').value,
+      datafine: document.getElementById('m-datafine').value
+    };
+
+    document.getElementById('sync-dot').classList.add('syncing');
+    document.getElementById('sync-text').textContent = 'Salvataggio...';
+
+    if (this.editingId === null) {
+      const newId = Math.max(...this.data.map(d => d.id), 0) + 1;
+      const { data, error } = await this.supabase.from('attivita').insert([{...obj, id: newId}]).select();
+      if (error) {
+        console.error(error);
+        this.toast('Errore: ' + error.message, 'error');
+      } else {
+        this.data.push(...(data || []));
+        this.toast('Attività aggiunta ✓', 'success');
+      }
+    } else {
+      const { error } = await this.supabase.from('attivita').update(obj).eq('id', this.editingId);
+      if (error) {
+        console.error(error);
+        this.toast('Errore: ' + error.message, 'error');
+      } else {
+        const idx = this.data.findIndex(d => d.id === this.editingId);
+        if (idx >= 0) this.data[idx] = { ...this.data[idx], ...obj };
+        this.toast('Attività aggiornata ✓', 'success');
+      }
+    }
+
+    document.getElementById('sync-dot').classList.remove('syncing');
+    document.getElementById('sync-text').textContent = '✓ Sincronizzato';
+    this.onFilter();
+    this.renderTable();
+    this.renderDashboard();
+    this.closeModal();
+  },
+
+  async exportExcel() {
+    const headers = ['#', 'Titolo', 'Periodo', 'Responsabile', 'Stato', 'F.O.', 'Inizio', 'Fine'];
+    const rows = [headers, ...this.data.map(d => [d.id, d.titolo, d.periodo, d.chi, d.stato, d.ondemand, d.datainizio, d.datafine])];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Attività');
+    XLSX.writeFile(wb, `Attività_2026_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    this.toast('Excel scaricato ✓', 'success');
+  },
+
+  async exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(14);
+    doc.text('Attività Innovazione 2026', 14, 14);
+    doc.setFontSize(9);
+    doc.text('Generato il ' + new Date().toLocaleDateString('it-IT'), 14, 20);
+    doc.autoTable({
+      startY: 24,
+      head: [['#', 'Titolo', 'Periodo', 'Resp.', 'Stato', 'F.O.', 'Inizio', 'Fine']],
+      body: this.data.map(d => [d.id, d.titolo.slice(0, 40), d.periodo, d.chi.slice(0, 25), d.stato.slice(0, 20), d.ondemand.slice(0, 20), d.datainizio, d.datafine]),
+      margin: { left: 10, right: 10 }
+    });
+    doc.save(`Attività_2026_${new Date().toISOString().slice(0, 10)}.pdf`);
+    this.toast('PDF scaricato ✓', 'success');
+  },
+
+  toast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + (type || '');
+    setTimeout(() => t.className = 'toast', 2500);
+  },
+
+  esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => APP.init());
+</script>
+</body>
+</html>
