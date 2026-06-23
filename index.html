@@ -156,9 +156,12 @@ td{padding:7px 10px;vertical-align:top}
         <input type="date" id="m-datafine">
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn-secondary" onclick="APP.closeModal()">Annulla</button>
-      <button class="btn-primary" onclick="APP.saveModal()">Salva</button>
+   <div class="modal-actions">
+      <button class="btn-danger" id="modal-delete-btn" onclick="APP.deleteModal()" style="display:none">🗑️ Elimina</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn-secondary" onclick="APP.closeModal()">Annulla</button>
+        <button class="btn-primary" onclick="APP.saveModal()">Salva</button>
+      </div>
     </div>
   </div>
 </div>
