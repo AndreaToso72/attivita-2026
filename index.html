@@ -234,11 +234,11 @@ const APP = {
       if (c in counts) counts[c]++;
     });
     document.getElementById('summary-cards').innerHTML = `
-      <div class="card"><div class="num">${this.data.length}</div><div class="lbl">Totale</div></div>
-      <div class="card"><div class="num">${counts.attivo}</div><div class="lbl">In corso</div></div>
-      <div class="card"><div class="num">${counts.completato}</div><div class="lbl">Completate</div></div>
-      <div class="card"><div class="num">${counts.standby}</div><div class="lbl">Stand By</div></div>
-      <div class="card"><div class="num">${counts.feedback}</div><div class="lbl">Feedback</div></div>
+    <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='';APP.onFilter()"><div class="num">${this.data.length}</div><div class="lbl">Totale</div></div>
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='attivo';APP.onFilter()"><div class="num">${counts.attivo}</div><div class="lbl">In corso</div></div>
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='completato';APP.onFilter()"><div class="num">${counts.completato}</div><div class="lbl">Completate</div></div>
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='standby';APP.onFilter()"><div class="num">${counts.standby}</div><div class="lbl">Stand By</div></div>
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='feedback';APP.onFilter()"><div class="num">${counts.feedback}</div><div class="lbl">Feedback</div></div> 
     `;
   },
 
