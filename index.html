@@ -24,7 +24,8 @@ nav button.active{background:#fff;color:#1565C0;font-weight:600}
 main{padding:16px;max-width:1600px;margin:0 auto}
 .tab-content{display:none}.tab-content.active{display:block}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px}
-.card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #ccc}
+.card{background:#fff;border-radius:8px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.1);border-left:4px solid #ccc;cursor:pointer;transition:.15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 3px 10px rgba(0,0,0,.15)}
 .card .num{font-size:32px;font-weight:700}.card .lbl{font-size:12px;color:#666;margin-top:4px}
 .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
 .badge-attivo{background:#E3F2FD;color:#1976D2}
@@ -49,11 +50,13 @@ td{padding:7px 10px;vertical-align:top}
 .form-row{margin-bottom:12px}
 .form-row label{display:block;font-size:12px;color:#555;margin-bottom:4px;font-weight:600}
 .form-row input,.form-row select,.form-row textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;align-items:center}
 .btn-primary{background:#1565C0;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px}
 .btn-primary:hover{background:#0D47A1}
 .btn-secondary{background:#f5f5f5;color:#444;border:1px solid #ddd;padding:8px 18px;border-radius:6px;cursor:pointer}
 .btn-secondary:hover{background:#ebebeb}
+.btn-danger{background:#FFEBEE;color:#C62828;border:1px solid #FFCDD2;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px}
+.btn-danger:hover{background:#FFCDD2}
 .toast{position:fixed;bottom:20px;right:20px;background:#323232;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:.3s}
 .toast.show{opacity:1}
 .toast.success{background:#2E7D32}.toast.error{background:#C62828}
@@ -156,12 +159,10 @@ td{padding:7px 10px;vertical-align:top}
         <input type="date" id="m-datafine">
       </div>
     </div>
-   <div class="modal-actions">
+    <div class="modal-actions">
       <button class="btn-danger" id="modal-delete-btn" onclick="APP.deleteModal()" style="display:none">🗑️ Elimina</button>
-      <div style="margin-left:auto;display:flex;gap:8px">
-        <button class="btn-secondary" onclick="APP.closeModal()">Annulla</button>
-        <button class="btn-primary" onclick="APP.saveModal()">Salva</button>
-      </div>
+      <button class="btn-secondary" onclick="APP.closeModal()">Annulla</button>
+      <button class="btn-primary" onclick="APP.saveModal()">Salva</button>
     </div>
   </div>
 </div>
@@ -234,11 +235,11 @@ const APP = {
       if (c in counts) counts[c]++;
     });
     document.getElementById('summary-cards').innerHTML = `
-    <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='';APP.onFilter()"><div class="num">${this.data.length}</div><div class="lbl">Totale</div></div>
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='';APP.onFilter()"><div class="num">${this.data.length}</div><div class="lbl">Totale</div></div>
       <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='attivo';APP.onFilter()"><div class="num">${counts.attivo}</div><div class="lbl">In corso</div></div>
       <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='completato';APP.onFilter()"><div class="num">${counts.completato}</div><div class="lbl">Completate</div></div>
       <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='standby';APP.onFilter()"><div class="num">${counts.standby}</div><div class="lbl">Stand By</div></div>
-      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='feedback';APP.onFilter()"><div class="num">${counts.feedback}</div><div class="lbl">Feedback</div></div> 
+      <div class="card" onclick="APP.showTab('attivita');document.getElementById('f-status').value='feedback';APP.onFilter()"><div class="num">${counts.feedback}</div><div class="lbl">Feedback</div></div>
     `;
   },
 
@@ -262,6 +263,7 @@ const APP = {
   openAddModal() {
     this.editingId = null;
     document.getElementById('modal-title').textContent = 'Nuova Attività';
+    document.getElementById('modal-delete-btn').style.display = 'none';
     ['titolo', 'periodo', 'chi', 'ondemand', 'annotazioni', 'datainizio', 'datafine'].forEach(f => {
       document.getElementById('m-' + f).value = '';
     });
@@ -274,6 +276,7 @@ const APP = {
     if (!row) return;
     this.editingId = id;
     document.getElementById('modal-title').textContent = 'Modifica #' + id;
+    document.getElementById('modal-delete-btn').style.display = 'block';
     ['titolo', 'periodo', 'chi', 'stato', 'ondemand', 'annotazioni', 'datainizio', 'datafine'].forEach(f => {
       document.getElementById('m-' + f).value = row[f] || '';
     });
@@ -282,6 +285,27 @@ const APP = {
 
   closeModal() {
     document.getElementById('modal-overlay').classList.remove('open');
+  },
+
+  async deleteModal() {
+    if (!confirm('Eliminare definitivamente questa attività?')) return;
+    if (!this.editingId) return;
+    document.getElementById('sync-dot').classList.add('syncing');
+    document.getElementById('sync-text').textContent = 'Eliminazione...';
+    const { error } = await this.supabase.from('attivita').delete().eq('id', this.editingId);
+    if (error) {
+      console.error(error);
+      this.toast('Errore: ' + error.message, 'error');
+    } else {
+      this.data = this.data.filter(d => d.id !== this.editingId);
+      this.toast('Attività eliminata ✓', 'success');
+      this.onFilter();
+      this.renderTable();
+      this.renderDashboard();
+    }
+    document.getElementById('sync-dot').classList.remove('syncing');
+    document.getElementById('sync-text').textContent = '✓ Sincronizzato';
+    this.closeModal();
   },
 
   async saveModal() {
