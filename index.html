@@ -69,6 +69,7 @@ td{padding:7px 10px;vertical-align:top}
   <nav>
     <button class="active" onclick="APP.showTab('dashboard')">Dashboard</button>
     <button onclick="APP.showTab('attivita')">Attività</button>
+    <button onclick="APP.showTab('gantt')">Gantt</button>
     <button onclick="APP.showTab('esporta')">Esporta</button>
   </nav>
   <div class="sync-status">
@@ -102,6 +103,25 @@ td{padding:7px 10px;vertical-align:top}
           <th>Stato</th><th>F.O.</th><th>Inizio</th><th>Fine</th><th></th>
         </tr></thead>
         <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-gantt">
+    <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="gf-text" placeholder="Filtra attività..." oninput="APP.renderGantt()" style="width:200px;padding:6px 10px;border:1px solid #ddd;border-radius:6px">
+      <select id="gf-status" onchange="APP.renderGantt()" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px">
+        <option value="">Tutti</option>
+        <option value="attivo">In corso</option>
+        <option value="completato">Completato</option>
+        <option value="standby">Stand By</option>
+        <option value="feedback">In attesa feedback</option>
+      </select>
+      <span style="font-size:12px;color:#888;margin-left:auto">Clicca su una riga per impostare le date | Anno 2026</span>
+    </div>
+    <div style="background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);overflow:auto;max-height:calc(100vh - 220px)">
+      <table id="gantt-table" style="width:max-content;min-width:100%;border-collapse:collapse;font-size:12px">
+        <tbody></tbody>
       </table>
     </div>
   </div>
@@ -204,6 +224,73 @@ const APP = {
     document.querySelectorAll('nav button').forEach(e => e.classList.remove('active'));
     document.getElementById('tab-' + id).classList.add('active');
     event.target.classList.add('active');
+    if (id === 'gantt') this.renderGantt();
+    if (id === 'dashboard') this.renderDashboard();
+  },
+
+  renderGantt() {
+    const gfText = (document.getElementById('gf-text') || {}).value || '';
+    const gfStatus = (document.getElementById('gf-status') || {}).value || '';
+    let rows = this.data.filter(d => {
+      const mT = !gfText || (d.titolo + d.chi).toLowerCase().includes(gfText.toLowerCase());
+      const mS = !gfStatus || this.getStatusCat(d.stato) === gfStatus;
+      return mT && mS;
+    });
+
+    const YEAR = 2026;
+    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const MONTHS_SHORT = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const catColors = { attivo: '#1976D2', completato: '#388E3C', standby: '#F57C00', feedback: '#7B1FA2', altro: '#607D8B' };
+    const today = new Date();
+    const todayMonth = today.getMonth();
+    const todayDay = today.getDate();
+
+    let thead = '<thead><tr style="background:#1565C0;color:#fff;position:sticky;top:0"><th style="padding:6px 8px;text-align:left;min-width:220px;position:sticky;left:0;z-index:6">Attività</th>';
+    for (let m = 0; m < 12; m++) thead += `<th style="padding:6px 8px;min-width:52px;text-align:center;border-bottom:1px solid #ddd">${MONTHS_SHORT[m]}</th>`;
+    thead += '</tr></thead>';
+
+    let tbody = '<tbody>';
+    rows.forEach(row => {
+      const cat = this.getStatusCat(row.stato);
+      const color = catColors[cat] || catColors.altro;
+      let startDate = row.datainizio ? new Date(row.datainizio) : null;
+      let endDate = row.datafine ? new Date(row.datafine) : null;
+
+      let cells = '';
+      for (let m = 0; m < 12; m++) {
+        const mStart = new Date(YEAR, m, 1);
+        const mEnd = new Date(YEAR, m, daysInMonth[m]);
+        let barHtml = '';
+
+        if (startDate && endDate) {
+          const clampedStart = startDate < mStart ? mStart : startDate;
+          const clampedEnd = endDate > mEnd ? mEnd : endDate;
+          if (clampedStart <= clampedEnd && startDate <= mEnd && endDate >= mStart) {
+            const monthDays = daysInMonth[m];
+            const startPct = ((clampedStart.getDate() - 1) / monthDays * 100).toFixed(1);
+            const widthPct = ((clampedEnd.getDate() - clampedStart.getDate() + 1) / monthDays * 100).toFixed(1);
+            const isFirst = startDate >= mStart && startDate <= mEnd;
+            const isLast = endDate >= mStart && endDate <= mEnd;
+            const br = `${isFirst ? '4px' : '0'} ${isLast ? '4px' : '0'} ${isLast ? '4px' : '0'} ${isFirst ? '4px' : '0'}`;
+            barHtml = `<div style="position:absolute;left:${startPct}%;width:${widthPct}%;background:${color};border-radius:${br};top:4px;bottom:4px;cursor:pointer" title="${this.esc(row.titolo)}" onclick="APP.openEditModal(${row.id})"></div>`;
+          }
+        }
+
+        let todayMarker = '';
+        if (m === todayMonth && YEAR === today.getFullYear()) {
+          const pct = ((todayDay - 1) / daysInMonth[m] * 100).toFixed(1);
+          todayMarker = `<div style="position:absolute;top:0;bottom:0;width:2px;background:#F44336;left:${pct}%;pointer-events:none"></div>`;
+        }
+
+        cells += `<td style="border-bottom:1px solid #f0f0f0;padding:4px 2px;min-width:52px;position:relative;height:28px">${barHtml}${todayMarker}</td>`;
+      }
+
+      const noDate = !startDate && !endDate ? ' style="opacity:.55"' : '';
+      tbody += `<tr${noDate}><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;position:sticky;left:0;z-index:3;background:#fff;min-width:220px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="APP.openEditModal(${row.id})" title="${this.esc(row.titolo)}"><span style="color:${color};margin-right:4px">●</span>${this.esc(row.id + '. ' + row.titolo.slice(0, 42) + (row.titolo.length > 42 ? '…' : ''))}</td>${cells}</tr>`;
+    });
+    tbody += '</tbody>';
+
+    document.getElementById('gantt-table').innerHTML = thead + tbody;
   },
 
   onFilter() {
